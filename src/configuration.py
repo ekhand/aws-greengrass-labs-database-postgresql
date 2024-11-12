@@ -7,12 +7,14 @@ from awsiot.greengrasscoreipc.model import GetConfigurationResponse, GetSecretVa
 
 from src.constants import (
     CONTAINER_MAPPING_KEY,
+    CONTAINER_IMAGE_KEY,
     CONTAINER_NAME_KEY,
     DEFAULT_CONTAINER_NAME,
     DEFAULT_HOST_PORT,
     DEFAULT_HOST_VOLUME,
     HOST_PORT_KEY,
     HOST_VOLUME_KEY,
+    DEFAULT_CONTAINER_IMAGE,
     POSTGRES_PASSWORD_KEY,
     POSTGRES_SERVER_CONFIGURATION_FILES_KEY,
     POSTGRES_USERNAME_KEY,
@@ -29,6 +31,7 @@ class ComponentConfiguration:
         self.__host_volume = DEFAULT_HOST_VOLUME
         self.__host_port = DEFAULT_HOST_PORT
         self.__container_name = DEFAULT_CONTAINER_NAME
+        self.__container_image = DEFAULT_CONTAINER_IMAGE
         self.__db_username = ""
         self.__db_password = ""
         self.__pg_config_files = {}
@@ -57,6 +60,9 @@ class ComponentConfiguration:
             None
         """
         component_config = config_response.value
+
+        print(f"DEBUG: Component config is {component_config}")
+
         if CONTAINER_MAPPING_KEY not in component_config:
             return
         container_config = component_config[CONTAINER_MAPPING_KEY]
@@ -64,6 +70,8 @@ class ComponentConfiguration:
             self.__host_port = container_config[HOST_PORT_KEY]
         if container_config.get(HOST_VOLUME_KEY):
             self.__host_volume = container_config[HOST_VOLUME_KEY]
+        if container_config.get(CONTAINER_IMAGE_KEY):
+            self.__container_image = container_config[CONTAINER_IMAGE_KEY]
         if container_config.get(CONTAINER_NAME_KEY):
             self.__container_name = container_config[CONTAINER_NAME_KEY]
 
@@ -143,6 +151,11 @@ class ComponentConfiguration:
     def get_container_name(self):
         "Returns docker container name"
         return self.__container_name
+
+    def get_container_image(self):
+        "Returns docker container image"
+        print(f"DEBUG: Image is {self.__container_image}")
+        return self.__container_image
 
     def get_host_port(self):
         "Returns docker host port"

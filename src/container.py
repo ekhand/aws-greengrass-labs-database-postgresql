@@ -16,7 +16,6 @@ from src.constants import (
     DEFAULT_DB_NAME,
     POSTGRES_COMMAND_DO_NOT_CHANGE,
     POSTGRES_DB_KEY,
-    POSTGRES_IMAGE,
     POSTGRES_PASSWORD_FILE_KEY,
     POSTGRES_USERNAME_FILE_KEY,
     SECRETS_KEY,
@@ -147,7 +146,7 @@ class ContainerManagement:
         logging.info("Running the docker container : %s", container_name)
 
         self.postgresql_container = self.docker_client.containers.run(
-            POSTGRES_IMAGE,
+            config.get_container_image(),
             "{} {}".format(POSTGRES_COMMAND_DO_NOT_CHANGE, self._create_config_command(config)),
             name=container_name,
             ports=postgres_ports,
