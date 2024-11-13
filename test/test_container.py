@@ -12,7 +12,7 @@ from awsiot.greengrasscoreipc.model import (
 from docker.models.containers import Container, ContainerCollection
 from src.configuration import ComponentConfiguration
 from src.configuration_handler import ComponentConfigurationIPCHandler
-from src.constants import POSTGRES_IMAGE, POSTGRES_PASSWORD_FILE_KEY, POSTGRES_USERNAME_FILE_KEY
+from src.constants import POSTGRES_PASSWORD_FILE_KEY, POSTGRES_USERNAME_FILE_KEY
 from src.container import ContainerManagement
 
 
@@ -59,6 +59,7 @@ def test_container_management_create_or_recreate_container(mocker, change_test_d
                 "HostPort": "8000",
                 "HostVolume": "/some/volume/",
                 "ContainerName": "some-container-name",
+                "ContainerImage": "some-image",
                 "DBCredentialSecret": "secret",
             }
         }
@@ -115,6 +116,7 @@ def test_container_management_run_container(mocker, change_test_dir):
                 "HostPort": "8000",
                 "HostVolume": "/some/volume/",
                 "ContainerName": "some-container-name",
+                "ContainerImage": "some-image",
             },
             "DBCredentialSecret": "secret",
             "ConfigurationFiles": {"postgresql.conf": "/path/to/custom/postgresql.conf"},
@@ -142,7 +144,7 @@ def test_container_management_run_container(mocker, change_test_dir):
     assert cm.secrets_path.exists()
     assert cm.secrets_path.joinpath(POSTGRES_PASSWORD_FILE_KEY).is_file()
     assert cm.secrets_path.joinpath(POSTGRES_USERNAME_FILE_KEY).is_file()
-    assert POSTGRES_IMAGE in args[0]
+    assert "some-image" in args[0]
     assert kwargs["name"] == "some-container-name"
     assert kwargs["detach"]
     assert kwargs["environment"] == {
@@ -174,6 +176,7 @@ def test_container_management_no_update_when_same_configuration(mocker):
                 "HostPort": "8000",
                 "HostVolume": "/some/volume/",
                 "ContainerName": "some-container-name",
+                "ContainerImage": "some-image",
                 "DBCredentialSecret": "secret",
             },
             "ConfigurationFiles": {"postgresql.conf": "/path/to/custom/postgresql.conf"},

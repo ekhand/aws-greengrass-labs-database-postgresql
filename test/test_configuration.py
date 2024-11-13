@@ -15,13 +15,14 @@ def test_configuration_default_values(mocker):
     assert configuration.get_db_credentials() == ("", "")
     assert configuration.get_host_volume() == consts.DEFAULT_HOST_VOLUME
     assert configuration.get_host_port() == consts.DEFAULT_HOST_PORT
+    assert configuration.get_container_image() == consts.DEFAULT_CONTAINER_IMAGE
 
 
 def test_configuration_set_container_config(mocker):
     mocker.patch("awsiot.greengrasscoreipc", return_value=None)
     ipc_client = GreengrassCoreIPCClientV2()
     configuration_response = GetConfigurationResponse(
-        value={"ContainerMapping": {"HostPort": "8000", "HostVolume": "/some/volume/", "ContainerName": "some-container-name"}}
+        value={"ContainerMapping": {"HostPort": "8000", "HostVolume": "/some/volume/", "ContainerName": "some-container-name", "ContainerImage": "some-image"}}
     )
     mock_ipc_get_config = mocker.patch.object(
         GreengrassCoreIPCClientV2, "get_configuration", return_value=configuration_response
@@ -34,6 +35,7 @@ def test_configuration_set_container_config(mocker):
     assert configuration.get_db_credentials() == ("", "")
     assert configuration.get_host_volume() == "/some/volume/"
     assert configuration.get_host_port() == "8000"
+    assert configuration.get_container_image() == "some-image"
 
 
 def test_configuration_set_credential_secret_config(mocker):
