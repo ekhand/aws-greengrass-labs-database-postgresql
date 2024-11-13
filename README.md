@@ -17,6 +17,9 @@ The `aws.greengrass.labs.database.PostgreSQL` component supports the following c
     * HostPort: The port of GG core device where the docker container postgresql server port is published. 
       * (`string`)
       * default: `5432`
+    * ContainerImage (_optional_) : The PostgreSQL Docker container image to be deployed. Available images can be found [here](https://hub.docker.com/_/postgres)
+      * (`string`)
+      * default: `postgres:alpine3.16`
     * ContainerName (_optional_) : The name of the Docker container
       * (`string`)
       * default: `greengrass_postgresql`
