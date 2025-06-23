@@ -203,7 +203,7 @@ def test_container_management_no_update_when_same_configuration(mocker):
     assert not mock_logs_container.called
 
 
-def test_container_management_no_update_when_different_configuration(mocker):
+def test_container_management_no_update_when_different_image_name(mocker):
     mocker.patch("awsiot.greengrasscoreipc", return_value=None)
     mocker.patch("src.configuration_handler", return_value=None)
     mock_ipc_client = GreengrassCoreIPCClientV2()
