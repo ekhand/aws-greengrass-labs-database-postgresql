@@ -43,6 +43,7 @@ class ComponentConfiguration:
         return (
             self.get_container_name() == other.get_container_name()
             and self.get_container_name() == other.get_container_name()
+            and self.get_container_image() == other.get_container_image()
             and self.get_host_volume() == other.get_host_volume()
             and self.get_host_port() == other.get_host_port()
             and self.get_db_credentials() == other.get_db_credentials()
