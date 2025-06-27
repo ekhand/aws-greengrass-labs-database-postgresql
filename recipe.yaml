@@ -23,7 +23,7 @@ Manifests:
   - Platform:
       os: /darwin|linux/
     Lifecycle:
-      Run:
+      startup:
         script: |-
           export PYTHONPATH=$PYTHONPATH:{artifacts:decompressedPath}/aws-greengrass-labs-database-postgresql/
           python3 -u {artifacts:decompressedPath}/aws-greengrass-labs-database-postgresql/src/manage_postgresql.py

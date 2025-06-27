@@ -1,10 +1,14 @@
 import logging
+import time
 from pathlib import Path
 from threading import Lock, Thread
 
 import docker.errors
 from awsiot.greengrasscoreipc.clientv2 import GreengrassCoreIPCClientV2
-from awsiot.greengrasscoreipc.model import ConfigurationUpdateEvents
+from awsiot.greengrasscoreipc.model import (
+    ConfigurationUpdateEvents,
+    LifecycleState
+)
 from docker.models.containers import Container
 
 from src.configuration import ComponentConfiguration
@@ -25,12 +29,13 @@ from src.constants import (
 
 class ContainerManagement:
     def __init__(
-        self, ipc_client: GreengrassCoreIPCClientV2, docker_client: Container, config_handler: ComponentConfigurationIPCHandler
+        self, ipc_client: GreengrassCoreIPCClientV2, docker_client: Container, config_handler: ComponentConfigurationIPCHandler, unit_testing: bool = False
     ) -> None:
+        self.unit_testing = unit_testing
         self.__ipc_client = ipc_client
         self.config_handler = config_handler
         self.docker_client = docker_client
-        self.postgresql_container = None
+        self.postgresql_container: Container | None = None
         self.lock = Lock()
         self.current_configuration = config_handler.get_configuration()
         self.secrets_path = Path().joinpath(SECRETS_KEY).resolve()
@@ -155,6 +160,26 @@ class ContainerManagement:
             detach=True,
         )
         self._follow_container_logs()
+
+        if self._check_postgres_container_health(db_username):
+            self.__ipc_client.update_state(state=LifecycleState.RUNNING)
+        else:
+            self.__ipc_client.update_state(state=LifecycleState.ERRORED)
+
+    def _check_postgres_container_health(self, db_username: str) -> bool:
+        max_attempts = 1 if self.unit_testing else 130
+        for _ in range(max_attempts):
+            try:
+                exec_result = self.postgresql_container.exec_run(
+                    f"pg_isready -U {db_username}")
+                if exec_result.exit_code == 0:
+                    logging.info("PostgreSQL container is ready.")
+                    return True
+                logging.info("PostgreSQL container is not ready yet. Exit code: %s", exec_result.exit_code)
+            except docker.errors.APIError as e:
+                logging.error("PostgreSQL container is not ready yet: %s", e.explanation)
+            time.sleep(1)
+        return False
 
     def _write_secrets_to_file(self, db_username, db_password):
         db_user_path = self.secrets_path.joinpath(POSTGRES_USERNAME_FILE_KEY).resolve()
