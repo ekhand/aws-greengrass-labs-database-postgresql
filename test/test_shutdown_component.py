@@ -8,7 +8,6 @@ def test_remove_container(mocker):
     mocker.patch("src.configuration_handler", return_value=None)
     mocker.patch("src.shutdown_component", return_value=None)
     mocker.patch("docker.DockerClient.containers", return_value=ContainerCollection())
-    mocker.patch("src.shutdown_component.remove_container", return_value=None)
     mocker.patch.object(docker.DockerClient.containers, "get", return_value=Container())
     mock_remove_container = mocker.patch.object(Container, "remove", return_value=None)
     mock_stop_container = mocker.patch.object(Container, "stop", return_value=None)

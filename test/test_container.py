@@ -1,4 +1,6 @@
 import docker
+import docker.models
+import docker.models.containers
 import pytest
 from awsiot.greengrasscoreipc.clientv2 import GreengrassCoreIPCClientV2
 from awsiot.greengrasscoreipc.model import (
@@ -78,6 +80,8 @@ def test_container_management_create_or_recreate_container(mocker, change_test_d
     mock_run_container = mocker.patch.object(docker.DockerClient.containers, "run", return_value=mock_container)
     mock_remove_container = mocker.patch.object(Container, "remove", return_value=None)
     mock_logs_container = mocker.patch.object(Container, "logs", return_value=[])
+    mock_exec_run_response = docker.models.containers.ExecResult(exit_code=0, output="PostgreSQL is ready")
+    mock_exec_container = mocker.patch.object(Container, "exec_run", return_value=mock_exec_run_response)
     cm = ContainerManagement(mock_ipc_client, docker.DockerClient, mock_configuration_handler)
     cm.current_configuration = ComponentConfiguration(mock_get_configuration_response, secret_value_reponse)
     cm.subscribe_to_configuration_updates()
@@ -86,6 +90,7 @@ def test_container_management_create_or_recreate_container(mocker, change_test_d
 
     assert mock_run_container.called
     assert mock_logs_container.called
+    assert mock_exec_container.called
     mocker.patch.object(docker.DockerClient.containers, "get", return_value=mock_container)
     cm.manage_postgresql_container(mock_configuration_handler.get_configuration())
 
@@ -135,7 +140,7 @@ def test_container_management_run_container(mocker, change_test_dir):
     mock_remove_container = mocker.patch.object(Container, "remove", return_value=None)
     mock_stop_container = mocker.patch.object(Container, "stop", return_value=None)
     mocker.patch("pathlib.Path.is_file", return_value=True)
-    cm = ContainerManagement(mock_ipc_client, docker.DockerClient, mock_configuration_handler)
+    cm = ContainerManagement(mock_ipc_client, docker.DockerClient, mock_configuration_handler, unit_testing=True)
     cm.current_configuration = ComponentConfiguration(mock_get_configuration_response, None)
     cm.subscribe_to_configuration_updates()
     assert not mock_remove_container.called
@@ -193,6 +198,8 @@ def test_container_management_no_update_when_same_configuration(mocker):
     mock_run_container = mocker.patch.object(docker.DockerClient.containers, "run", return_value=None)
     mock_restart_container = mocker.patch.object(Container, "restart", return_value=None)
     mock_logs_container = mocker.patch.object(Container, "logs", return_value=[])
+    mock_exec_run_response = docker.models.containers.ExecResult(exit_code=0, output="PostgreSQL is ready")
+    mocker.patch.object(Container, "exec_run", return_value=mock_exec_run_response)
 
     cm = ContainerManagement(mock_ipc_client, docker.DockerClient, mock_configuration_handler)
     cm.subscribe_to_configuration_updates()
@@ -201,3 +208,68 @@ def test_container_management_no_update_when_same_configuration(mocker):
     assert not mock_run_container.called
     assert not mock_restart_container.called
     assert not mock_logs_container.called
+
+
+def test_container_management_no_update_when_different_image_name(mocker):
+    mocker.patch("awsiot.greengrasscoreipc", return_value=None)
+    mocker.patch("src.configuration_handler", return_value=None)
+    mock_ipc_client = GreengrassCoreIPCClientV2()
+    mock_configuration_handler = ComponentConfigurationIPCHandler(mock_ipc_client)
+
+    def this_triggers_callbacks(*args, **kwargs):
+        config_update_events = ConfigurationUpdateEvents(
+            configuration_update_event=ConfigurationUpdateEvent(
+                component_name="", key_path=["ConfigurationFiles", "postgresql.conf"]
+            )
+        )
+        kwargs["on_stream_event"](config_update_events)
+        return SubscribeToConfigurationUpdateResponse()
+
+    mocker.patch.object(mock_ipc_client, "subscribe_to_configuration_update", side_effect=this_triggers_callbacks)
+    mock_get_configuration_response = GetConfigurationResponse(
+        value={
+            "ContainerMapping": {
+                "HostPort": "8000",
+                "HostVolume": "/some/volume/",
+                "ContainerName": "some-container-name",
+                "ContainerImage": "some-image",
+                "DBCredentialSecret": "secret",
+            },
+            "ConfigurationFiles": {"postgresql.conf": "/path/to/custom/postgresql.conf"},
+        }
+    )
+    different_mock_get_configuration_response = GetConfigurationResponse(
+        value={
+            "ContainerMapping": {
+                "HostPort": "8000",
+                "HostVolume": "/some/volume/",
+                "ContainerName": "some-container-name",
+                "ContainerImage": "new-image",
+                "DBCredentialSecret": "secret",
+            },
+            "ConfigurationFiles": {"postgresql.conf": "/path/to/custom/postgresql.conf"},
+        }
+    )
+
+    mock_container = Container()
+    mocker.patch.object(GreengrassCoreIPCClientV2, "get_configuration", side_effect=[mock_get_configuration_response, different_mock_get_configuration_response])
+    mocker.patch("threading.Thread", return_value=None)
+    mocker.patch("docker.DockerClient.containers", return_value=ContainerCollection())
+    mocker.patch.object(docker.DockerClient.containers, "get", return_value=Container())
+    mocker.patch("pathlib.Path.is_file", return_value=True)
+    mock_remove_container = mocker.patch.object(Container, "remove", return_value=None)
+    mock_stop_container = mocker.patch.object(Container, "stop", return_value=None)
+    mock_run_container = mocker.patch.object(docker.DockerClient.containers, "run", return_value=mock_container)
+    mock_restart_container = mocker.patch.object(Container, "restart", return_value=None)
+    mock_logs_container = mocker.patch.object(Container, "logs", return_value=[])
+    mock_exec_run_response = docker.models.containers.ExecResult(exit_code=0, output="PostgreSQL is ready")
+    mock_exec_container = mocker.patch.object(Container, "exec_run", return_value=mock_exec_run_response)
+
+    cm = ContainerManagement(mock_ipc_client, docker.DockerClient, mock_configuration_handler)
+    cm.subscribe_to_configuration_updates()
+    assert mock_remove_container.called
+    assert mock_stop_container.called
+    assert mock_run_container.called
+    assert mock_exec_container.called
+    assert not mock_restart_container.called
+    assert mock_logs_container.called
