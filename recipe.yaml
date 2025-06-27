@@ -23,6 +23,9 @@ Manifests:
   - Platform:
       os: /darwin|linux/
     Lifecycle:
+      install:
+        script: |-
+          python3 -m pip install --no-cache-dir -r {artifacts:decompressedPath}/aws-greengrass-labs-database-postgresql/requirements.txt
       startup:
         script: |-
           export PYTHONPATH=$PYTHONPATH:{artifacts:decompressedPath}/aws-greengrass-labs-database-postgresql/
