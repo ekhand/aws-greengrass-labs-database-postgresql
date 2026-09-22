@@ -1,12 +1,12 @@
 ---
 RecipeFormatVersion: '2020-01-25'
 ComponentName: aws.greengrass.labs.database.PostgreSQL
-ComponentVersion: '1.0.0'
+ComponentVersion: '1.0.1'
 ComponentDescription: 'A component that provisions and manages a local PostgreSQL instance in a Docker container.'
 ComponentPublisher: Amazon
 ComponentDependencies:
   aws.greengrass.SecretManager:
-    VersionRequirement: ~2.1.0
+    VersionRequirement: ">=2.1.0"
     DependencyType: HARD
 ComponentConfiguration:
   DefaultConfiguration:
